@@ -46,13 +46,10 @@ export default function RootLayout() {
         await setupPlayer();
         if (!unmounted) {
           setInitialized(true);
-          console.log('Player initialized successfully');
         }
       } catch (error: any) {
         if (error?.message?.includes('already initialized') || error?.message?.includes('setupPlayer twice')) {
           if (!unmounted) setInitialized(true);
-        } else {
-          console.warn('Player setup failed:', error);
         }
       } finally {
         if (!unmounted) {

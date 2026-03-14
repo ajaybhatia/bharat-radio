@@ -34,15 +34,12 @@ interface PlayerState {
 
 const safeTrackPlayer = async (action: () => Promise<any>, state: PlayerState) => {
   if (!state.isInitialized) {
-    console.warn('TrackPlayer not yet initialized, skipping action');
     return;
   }
   try {
     return await action();
   } catch (error: any) {
-    if (error?.message?.includes('not initialized')) {
-      console.warn('TrackPlayer report: not initialized. Guarding...');
-    } else {
+    if (!error?.message?.includes('not initialized')) {
       console.error('TrackPlayer error:', error);
     }
   }

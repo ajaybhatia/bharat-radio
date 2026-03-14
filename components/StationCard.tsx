@@ -1,11 +1,11 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import React, { memo } from 'react';
-import Animated, { FadeInRight } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../theme/colors';
-import { Station } from '../store/playerStore';
-import { Heart } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import { Heart } from 'lucide-react-native';
+import { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInRight } from 'react-native-reanimated';
+import { Station } from '../store/playerStore';
+import { Colors } from '../theme/colors';
 
 interface StationCardProps {
   station: Station;
@@ -27,46 +27,46 @@ const StationCard = ({ station, onPress, onFavoritePress, isFavorite }: StationC
 
   return (
     <Animated.View entering={FadeInRight.duration(400)}>
-      <Pressable 
+      <Pressable
         style={({ pressed }) => [
           styles.card,
           { opacity: pressed ? 0.7 : 1 }
-        ]} 
+        ]}
         onPress={handlePress}
       >
         <View style={styles.imageContainer}>
           {station.favicon ? (
-            <Image 
-              source={{ uri: station.favicon }} 
+            <Image
+              source={{ uri: station.favicon }}
               style={styles.image}
               contentFit="cover"
               transition={200}
             />
           ) : (
             <View style={[styles.image, styles.placeholderImage]}>
-               <Text style={styles.placeholderText}>{station.name.substring(0,2).toUpperCase()}</Text>
+              <Text style={styles.placeholderText}>{station.name.substring(0, 2).toUpperCase()}</Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.infoContainer}>
           <Text style={styles.title} numberOfLines={1}>{station.name}</Text>
           <Text style={styles.subtitle} numberOfLines={1}>
             {station.language} • {station.state}
           </Text>
         </View>
-        
-        <Pressable 
+
+        <Pressable
           style={({ pressed }) => [
             styles.favoriteButton,
             { opacity: pressed ? 0.6 : 1 }
-          ]} 
+          ]}
           onPress={handleFavorite}
         >
-          <Heart 
-            size={22} 
-            color={isFavorite ? Colors.secondary : Colors.textMuted} 
-            fill={isFavorite ? Colors.secondary : 'transparent'} 
+          <Heart
+            size={22}
+            color={isFavorite ? Colors.secondary : Colors.textMuted}
+            fill={isFavorite ? Colors.secondary : 'transparent'}
           />
         </Pressable>
       </Pressable>
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },

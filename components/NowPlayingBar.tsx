@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pause, Play, X } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePlayerStore } from '../store/playerStore';
 import { Colors } from '../theme/colors';
 
@@ -83,20 +83,12 @@ export default function NowPlayingBar() {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 100,
-    left: 10,
-    right: 10,
+    bottom: Platform.OS === 'ios' ? 88 : 64,
+    left: 0,
+    right: 0,
     height: 64,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   container: {
     flex: 1,
