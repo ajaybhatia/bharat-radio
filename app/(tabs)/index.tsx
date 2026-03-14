@@ -133,8 +133,17 @@ export default function DiscoverScreen() {
 
   const loadStations = useCallback(async (tag?: string) => {
     setLoading(true);
-    const data = await fetchStations({ limit: 100, tag: tag === 'all' ? undefined : tag });
-    setStations(data);
+    const isIndianCategory = ['bollywood', 'devotional', 'news'].includes(tag || '');
+    
+    // Fetch global stations for 'All', 'Pop', 'Classic' etc.
+    // Fetch Indian stations only for specific local categories.
+    const stations = await fetchStations({
+      limit: 100,
+      tag: tag === 'all' ? undefined : tag,
+      country: isIndianCategory ? 'India' : undefined
+    });
+
+    setStations(stations);
     setLoading(false);
   }, []);
 

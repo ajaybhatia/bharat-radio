@@ -25,33 +25,45 @@ const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as any;
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
-  const [allStations, setAllStations] = useState<Station[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stations, setStations] = useState<Station[]>([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setCurrentStation, favorites, toggleFavorite } = usePlayerStore();
   const scrollY = useSharedValue(0);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const stations = await fetchStations();
-      setAllStations(stations);
+  const searchStations = useCallback(async (text: string) => {
+    setLoading(true);
+    try {
+      const results = await fetchStations({ 
+        name: text || undefined, 
+        limit: 50,
+        // If query is empty, maybe just fetch top voted global stations
+      });
+      setStations(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
       setLoading(false);
-    };
-    load();
+    }
   }, []);
 
-  const onScroll = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
-  });
+  useEffect(() => {
+    // Initial load: top global stations
+    searchStations('');
+  }, [searchStations]);
 
-  const filteredStations = useMemo(() => {
-    if (!query) return [];
-    return allStations.filter(s => 
-      s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.tags.some(t => t.toLowerCase().includes(query.toLowerCase()))
-    );
-  }, [query, allStations]);
+  useEffect(() => {
+    if (!query) {
+      searchStations('');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchStations(query);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [query, searchStations]);
 
   const headerStyle = useAnimatedStyle(() => {
     const height = interpolate(
@@ -87,6 +99,10 @@ export default function SearchScreen() {
       Extrapolate.CLAMP
     );
     return { opacity };
+  });
+
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
   });
 
   const isFavorite = useCallback((stationId: string) => {
@@ -132,7 +148,7 @@ export default function SearchScreen() {
       </Animated.View>
 
       <AnimatedFlashList
-        data={filteredStations}
+        data={stations}
         keyExtractor={(item: any) => item.id}
         renderItem={renderItem}
         onScroll={onScroll}
