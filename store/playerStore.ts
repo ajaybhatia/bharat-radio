@@ -29,6 +29,7 @@ interface PlayerState {
   loadFavorites: () => Promise<void>;
   loadRecentlyPlayed: () => Promise<void>;
   setInitialized: (initialized: boolean) => void;
+  stopPlayer: () => Promise<void>;
 }
 
 const safeTrackPlayer = async (action: () => Promise<any>, state: PlayerState) => {
@@ -176,5 +177,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         set({ sleepTimerRemaining: remaining - 1 });
       }
     }, 60000);
+  },
+
+  stopPlayer: async () => {
+    set({ currentStation: null, isPlaying: false });
+    await safeTrackPlayer(async () => {
+      await TrackPlayer.reset();
+    }, get());
   }
 }));

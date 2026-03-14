@@ -1,9 +1,9 @@
-import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
-import { Colors } from '../../theme/colors';
-import NowPlayingBar from '../../components/NowPlayingBar';
-import { Radio, Search, Heart, Info } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import { Tabs } from 'expo-router';
+import { Heart, Info, Radio, Search } from 'lucide-react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import NowPlayingBar from '../../components/NowPlayingBar';
+import { Colors } from '../../theme/colors';
 
 export default function TabLayout() {
   return (
@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
     height: 64,
     backgroundColor: 'transparent',
     bottom: Platform.OS === 'ios' ? 34 : 24,
-    left: 40,
-    right: 40,
+    left: 10,
+    right: 10,
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',

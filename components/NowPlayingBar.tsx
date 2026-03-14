@@ -1,15 +1,15 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Play, Pause } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../theme/colors';
-import { usePlayerStore } from '../store/playerStore';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { Pause, Play, X } from 'lucide-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { usePlayerStore } from '../store/playerStore';
+import { Colors } from '../theme/colors';
 
 export default function NowPlayingBar() {
   const router = useRouter();
-  const { currentStation, isPlaying, setIsPlaying } = usePlayerStore();
+  const { currentStation, isPlaying, setIsPlaying, stopPlayer } = usePlayerStore();
 
   if (!currentStation) return null;
 
@@ -18,26 +18,35 @@ export default function NowPlayingBar() {
     setIsPlaying(!isPlaying);
   };
 
+  const handleDismiss = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    stopPlayer();
+  };
+
   const handlePress = () => {
     Haptics.selectionAsync();
     router.push('/player');
   };
 
   return (
-    <Pressable 
+    <Pressable
       style={({ pressed }) => [
-        styles.wrapper, 
+        styles.wrapper,
         { transform: [{ scale: pressed ? 0.98 : 1 }] }
-      ]} 
+      ]}
       onPress={handlePress}
     >
       <BlurView intensity={90} tint="dark" style={styles.container}>
         <View style={styles.content}>
+          <Pressable onPress={handleDismiss} style={styles.dismissButton}>
+            <X size={20} color={Colors.textMuted} />
+          </Pressable>
+          
           <View style={styles.imageContainer}>
             {currentStation.favicon ? (
-              <Image 
-                source={{ uri: currentStation.favicon }} 
-                style={styles.image} 
+              <Image
+                source={{ uri: currentStation.favicon }}
+                style={styles.image}
                 contentFit="cover"
                 transition={200}
               />
@@ -47,16 +56,16 @@ export default function NowPlayingBar() {
               </View>
             )}
           </View>
-          
+
           <View style={styles.info}>
             <Text style={styles.title} numberOfLines={1}>{currentStation.name}</Text>
           </View>
-          
-          <Pressable 
+
+          <Pressable
             style={({ pressed }) => [
               styles.playButton,
               { opacity: pressed ? 0.7 : 1 }
-            ]} 
+            ]}
             onPress={handlePlayPause}
           >
             {isPlaying ? (
@@ -74,9 +83,9 @@ export default function NowPlayingBar() {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 114,
-    left: 40,
-    right: 40,
+    bottom: 100,
+    left: 10,
+    right: 10,
     height: 64,
     borderRadius: 24,
     overflow: 'hidden',
@@ -96,13 +105,20 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+  },
+  dismissButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
   },
   imageContainer: {
     width: 44,
     height: 44,
-    borderRadius: 6,
-    marginRight: 12,
+    borderRadius: 8,
+    marginRight: 10,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
   },

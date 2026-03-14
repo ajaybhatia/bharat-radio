@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -39,6 +39,83 @@ const TITLE_ORIGINAL_SIZE = 34;
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as any;
 
+const RecentPlayedSection = React.memo(({ recentlyPlayed, onStationPress }: { 
+  recentlyPlayed: Station[], 
+  onStationPress: (station: Station) => void 
+}) => {
+  if (recentlyPlayed.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <RNText style={styles.sectionTitle}>Recently Played</RNText>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.recentScroll}
+      >
+        {recentlyPlayed.map((station) => (
+          <Pressable 
+            key={station.id} 
+            style={styles.recentCard}
+            onPress={() => onStationPress(station)}
+          >
+            <View style={styles.recentImageContainer}>
+              {station.favicon ? (
+                <Image 
+                  source={{ uri: station.favicon }} 
+                  style={styles.recentImage}
+                  contentFit="cover"
+                  transition={200}
+                />
+              ) : (
+                <View style={styles.recentPlaceholder}>
+                  <RNText style={styles.recentPlaceholderText}>
+                    {station.name.substring(0, 1)}
+                  </RNText>
+                </View>
+              )}
+            </View>
+            <RNText style={styles.recentName} numberOfLines={1}>
+              {station.name}
+            </RNText>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+});
+
+const CategorySection = React.memo(({ selectedCategory, onCategoryPress }: {
+  selectedCategory: string,
+  onCategoryPress: (id: string) => void
+}) => (
+  <View style={styles.section}>
+    <RNText style={styles.sectionTitle}>Browse Genres</RNText>
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.categoryScroll}
+    >
+      {CATEGORIES.map((cat) => (
+        <Pressable
+          key={cat.id}
+          onPress={() => onCategoryPress(cat.id)}
+          style={[
+            styles.categoryChip,
+            selectedCategory === cat.id && styles.categoryChipActive
+          ]}
+        >
+          <RNText style={[
+            styles.categoryText,
+            selectedCategory === cat.id && styles.categoryTextActive
+          ]}>
+            {cat.name}
+          </RNText>
+        </Pressable>
+      ))}
+    </ScrollView>
+  </View>
+));
+
 export default function DiscoverScreen() {
   const router = useRouter();
   const [stations, setStations] = useState<Station[]>([]);
@@ -54,22 +131,23 @@ export default function DiscoverScreen() {
   } = usePlayerStore();
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  useEffect(() => {
-    loadStations();
-    loadRecentlyPlayed();
-  }, [loadRecentlyPlayed]);
-
-  const loadStations = async (tag?: string) => {
+  const loadStations = useCallback(async (tag?: string) => {
     setLoading(true);
     const data = await fetchStations({ limit: 100, tag: tag === 'all' ? undefined : tag });
     setStations(data);
     setLoading(false);
-  };
+  }, []);
 
-  const handleCategoryPress = (categoryId: string) => {
+  const handleCategoryPress = useCallback((categoryId: string) => {
     setSelectedCategory(categoryId);
+    // Don't clear stations here to avoid blinking/jumping
     loadStations(categoryId);
-  };
+  }, [loadStations]);
+
+  useEffect(() => {
+    loadStations();
+    loadRecentlyPlayed();
+  }, [loadRecentlyPlayed, loadStations]);
 
   const isFavorite = useCallback((stationId: string) => {
     return favorites.some(fav => fav.id === stationId);
@@ -126,14 +204,27 @@ export default function DiscoverScreen() {
       isFavorite={isFavorite(item.id)}
     />
   ), [setCurrentStation, router, toggleFavorite, isFavorite]);
-
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
+  const ListHeader = useMemo(() => (
+    <View style={styles.listHeader}>
+      <RecentPlayedSection 
+        recentlyPlayed={recentlyPlayed} 
+        onStationPress={(station) => {
+          setCurrentStation(station);
+          router.push('/player');
+        }}
+      />
+      <CategorySection 
+        selectedCategory={selectedCategory} 
+        onCategoryPress={handleCategoryPress} 
+      />
+      <RNText style={[styles.sectionTitle, { marginBottom: 12 }]}>Trending Now</RNText>
+      {loading && stations.length > 0 && (
+        <View style={{ paddingVertical: 10 }}>
+          <ActivityIndicator color={Colors.primary} />
+        </View>
+      )}
+    </View>
+  ), [recentlyPlayed, selectedCategory, handleCategoryPress, setCurrentStation, router, loading, stations.length]);
 
   return (
     <View style={styles.container}>
@@ -156,82 +247,12 @@ export default function DiscoverScreen() {
         renderItem={renderItem}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        ListHeaderComponent={() => (
-          <View style={styles.listHeader}>
-            {/* Recently Played */}
-            {recentlyPlayed.length > 0 && (
-              <View style={styles.section}>
-                <RNText style={styles.sectionTitle}>Recently Played</RNText>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.recentScroll}
-                >
-                  {recentlyPlayed.map((station) => (
-                    <Pressable 
-                      key={station.id} 
-                      style={styles.recentCard}
-                      onPress={() => {
-                        setCurrentStation(station);
-                        router.push('/player');
-                      }}
-                    >
-                      <View style={styles.recentImageContainer}>
-                        {station.favicon ? (
-                          <Image 
-                            source={{ uri: station.favicon }} 
-                            style={styles.recentImage}
-                            contentFit="cover"
-                            transition={200}
-                          />
-                        ) : (
-                          <View style={styles.recentPlaceholder}>
-                            <RNText style={styles.recentPlaceholderText}>
-                              {station.name.substring(0, 1)}
-                            </RNText>
-                          </View>
-                        )}
-                      </View>
-                      <RNText style={styles.recentName} numberOfLines={1}>
-                        {station.name}
-                      </RNText>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Categories */}
-            <View style={styles.section}>
-              <RNText style={styles.sectionTitle}>Browse Genres</RNText>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryScroll}
-              >
-                {CATEGORIES.map((cat) => (
-                  <Pressable
-                    key={cat.id}
-                    onPress={() => handleCategoryPress(cat.id)}
-                    style={[
-                      styles.categoryChip,
-                      selectedCategory === cat.id && styles.categoryChipActive
-                    ]}
-                  >
-                    <RNText style={[
-                      styles.categoryText,
-                      selectedCategory === cat.id && styles.categoryTextActive
-                    ]}>
-                      {cat.name}
-                    </RNText>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-
-            <RNText style={[styles.sectionTitle, { marginBottom: 12 }]}>Trending Now</RNText>
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={() => loading ? (
+          <View style={styles.listLoadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        )}
+        ) : null}
         contentContainerStyle={styles.listContent}
         estimatedItemSize={82}
       />
@@ -363,5 +384,10 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: HEADER_MAX_HEIGHT + 10,
     paddingBottom: 100,
+  },
+  listLoadingContainer: {
+    paddingVertical: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
