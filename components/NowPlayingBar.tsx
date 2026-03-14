@@ -1,0 +1,138 @@
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Play, Pause } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import { Colors } from '../theme/colors';
+import { usePlayerStore } from '../store/playerStore';
+import { Image } from 'expo-image';
+
+export default function NowPlayingBar() {
+  const router = useRouter();
+  const { currentStation, isPlaying, setIsPlaying } = usePlayerStore();
+
+  if (!currentStation) return null;
+
+  const handlePlayPause = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsPlaying(!isPlaying);
+  };
+
+  const handlePress = () => {
+    Haptics.selectionAsync();
+    router.push('/player');
+  };
+
+  return (
+    <Pressable 
+      style={({ pressed }) => [
+        styles.wrapper, 
+        { transform: [{ scale: pressed ? 0.98 : 1 }] }
+      ]} 
+      onPress={handlePress}
+    >
+      <BlurView intensity={90} tint="dark" style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.imageContainer}>
+            {currentStation.favicon ? (
+              <Image 
+                source={{ uri: currentStation.favicon }} 
+                style={styles.image} 
+                contentFit="cover"
+                transition={200}
+              />
+            ) : (
+              <View style={[styles.image, styles.placeholderImage]}>
+                <Text style={styles.placeholderText}>{currentStation.name.substring(0, 1)}</Text>
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.info}>
+            <Text style={styles.title} numberOfLines={1}>{currentStation.name}</Text>
+          </View>
+          
+          <Pressable 
+            style={({ pressed }) => [
+              styles.playButton,
+              { opacity: pressed ? 0.7 : 1 }
+            ]} 
+            onPress={handlePlayPause}
+          >
+            {isPlaying ? (
+              <Pause size={28} color={Colors.text} fill={Colors.text} />
+            ) : (
+              <Play size={28} color={Colors.text} fill={Colors.text} />
+            )}
+          </Pressable>
+        </View>
+      </BlurView>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    bottom: 114,
+    left: 40,
+    right: 40,
+    height: 64,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  imageContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+    marginRight: 12,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surfaceLight,
+  },
+  placeholderText: {
+    color: Colors.textMuted,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  info: {
+    flex: 1,
+  },
+  title: {
+    color: Colors.text,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.4,
+  },
+  playButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

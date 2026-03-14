@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "bharat-radio",
+    "name": "Bharat Radio",
     "slug": "bharat-radio",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "me.ajaybhatia.bharatradio",
+      "appleTeamId": "G599783FCZ",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +26,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "me.ajaybhatia.bharatradio"
     },
     "web": {
       "output": "static",
@@ -42,7 +50,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }

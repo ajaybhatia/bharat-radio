@@ -1,98 +1,367 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  View, 
+  StyleSheet, 
+  ActivityIndicator, 
+  ScrollView, 
+  Pressable, 
+  Text as RNText 
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { FlashList, ListRenderItem } from '@shopify/flash-list';
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import Animated, { 
+  useAnimatedScrollHandler, 
+  useAnimatedStyle, 
+  useSharedValue, 
+  interpolate,
+  Extrapolate
+} from 'react-native-reanimated';
+import { Colors } from '../../theme/colors';
+import { fetchStations } from '../../api/radioBrowser';
+import StationCard from '../../components/StationCard';
+import { Station, usePlayerStore } from '../../store/playerStore';
+import { useRouter } from 'expo-router';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const CATEGORIES = [
+  { id: 'all', name: 'All' },
+  { id: 'bollywood', name: 'Bollywood' },
+  { id: 'devotional', name: 'Devotional' },
+  { id: 'news', name: 'News' },
+  { id: 'pop', name: 'Pop' },
+  { id: 'classic', name: 'Classic' },
+];
 
-export default function HomeScreen() {
+const HEADER_MAX_HEIGHT = 140;
+const HEADER_MIN_HEIGHT = 100;
+const TITLE_ORIGINAL_SIZE = 34;
+
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as any;
+
+export default function DiscoverScreen() {
+  const router = useRouter();
+  const [stations, setStations] = useState<Station[]>([]);
+  const [loading, setLoading] = useState(true);
+  const scrollY = useSharedValue(0);
+  
+  const { 
+    setCurrentStation, 
+    favorites, 
+    toggleFavorite, 
+    recentlyPlayed, 
+    loadRecentlyPlayed 
+  } = usePlayerStore();
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  useEffect(() => {
+    loadStations();
+    loadRecentlyPlayed();
+  }, [loadRecentlyPlayed]);
+
+  const loadStations = async (tag?: string) => {
+    setLoading(true);
+    const data = await fetchStations({ limit: 100, tag: tag === 'all' ? undefined : tag });
+    setStations(data);
+    setLoading(false);
+  };
+
+  const handleCategoryPress = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    loadStations(categoryId);
+  };
+
+  const isFavorite = useCallback((stationId: string) => {
+    return favorites.some(fav => fav.id === stationId);
+  }, [favorites]);
+
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  const headerStyle = useAnimatedStyle(() => {
+    const height = interpolate(
+      scrollY.value,
+      [0, HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT],
+      [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+      Extrapolate.CLAMP
+    );
+    return { height };
+  });
+
+  const titleStyle = useAnimatedStyle(() => {
+    const fontSize = interpolate(
+      scrollY.value,
+      [0, HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT],
+      [TITLE_ORIGINAL_SIZE, 18],
+      Extrapolate.CLAMP
+    );
+    const opacity = interpolate(
+      scrollY.value,
+      [0, (HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT) * 0.5],
+      [1, 0.8],
+      Extrapolate.CLAMP
+    );
+    return { fontSize, opacity };
+  });
+
+  const headerBlurStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [0, HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT],
+      [0, 1],
+      Extrapolate.CLAMP
+    );
+    return { opacity };
+  });
+
+  const renderItem: ListRenderItem<Station> = useCallback(({ item }) => (
+    <StationCard 
+      station={item} 
+      onPress={() => {
+        setCurrentStation(item);
+        router.push('/player');
+      }}
+      onFavoritePress={() => toggleFavorite(item)}
+      isFavorite={isFavorite(item.id)}
+    />
+  ), [setCurrentStation, router, toggleFavorite, isFavorite]);
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <Animated.View style={[styles.headerWrapper, headerStyle]}>
+        <Animated.View style={[StyleSheet.absoluteFill, headerBlurStyle, { zIndex: 1 }]}>
+          <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+        </Animated.View>
+        <LinearGradient
+          colors={[Colors.primary + '22', 'transparent']}
+          style={styles.gradient}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+        <View style={styles.titleContainer}>
+          <Animated.Text style={[styles.headerTitle, titleStyle]}>Listen Now</Animated.Text>
+        </View>
+      </Animated.View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <AnimatedFlashList
+        data={stations}
+        keyExtractor={(item: any) => item.id}
+        renderItem={renderItem}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        ListHeaderComponent={() => (
+          <View style={styles.listHeader}>
+            {/* Recently Played */}
+            {recentlyPlayed.length > 0 && (
+              <View style={styles.section}>
+                <RNText style={styles.sectionTitle}>Recently Played</RNText>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recentScroll}
+                >
+                  {recentlyPlayed.map((station) => (
+                    <Pressable 
+                      key={station.id} 
+                      style={styles.recentCard}
+                      onPress={() => {
+                        setCurrentStation(station);
+                        router.push('/player');
+                      }}
+                    >
+                      <View style={styles.recentImageContainer}>
+                        {station.favicon ? (
+                          <Image 
+                            source={{ uri: station.favicon }} 
+                            style={styles.recentImage}
+                            contentFit="cover"
+                            transition={200}
+                          />
+                        ) : (
+                          <View style={styles.recentPlaceholder}>
+                            <RNText style={styles.recentPlaceholderText}>
+                              {station.name.substring(0, 1)}
+                            </RNText>
+                          </View>
+                        )}
+                      </View>
+                      <RNText style={styles.recentName} numberOfLines={1}>
+                        {station.name}
+                      </RNText>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Categories */}
+            <View style={styles.section}>
+              <RNText style={styles.sectionTitle}>Browse Genres</RNText>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryScroll}
+              >
+                {CATEGORIES.map((cat) => (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => handleCategoryPress(cat.id)}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === cat.id && styles.categoryChipActive
+                    ]}
+                  >
+                    <RNText style={[
+                      styles.categoryText,
+                      selectedCategory === cat.id && styles.categoryTextActive
+                    ]}>
+                      {cat.name}
+                    </RNText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+
+            <RNText style={[styles.sectionTitle, { marginBottom: 12 }]}>Trending Now</RNText>
+          </View>
+        )}
+        contentContainerStyle={styles.listContent}
+        estimatedItemSize={82}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  centerContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  headerWrapper: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    overflow: 'hidden',
+    backgroundColor: Colors.background,
+  },
+  titleContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    zIndex: 2,
+  },
+  headerTitle: {
+    color: Colors.text,
+    fontWeight: 'bold',
+    letterSpacing: -0.5,
+  },
+  gradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
+  listHeader: {
+    paddingBottom: 20,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    color: Colors.text,
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    letterSpacing: -0.5,
+  },
+  recentScroll: {
+    paddingHorizontal: 15,
+  },
+  recentCard: {
+    width: 120,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  recentImageContainer: {
+    width: 110,
+    height: 110,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  recentImage: {
+    width: '100%',
+    height: '100%',
+  },
+  recentPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recentPlaceholderText: {
+    color: Colors.textMuted,
+    fontSize: 40,
+    fontWeight: 'bold',
+  },
+  recentName: {
+    color: Colors.text,
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    width: '100%',
+  },
+  categoryScroll: {
+    paddingHorizontal: 15,
+  },
+  categoryChip: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  categoryChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  categoryText: {
+    color: Colors.textMuted,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  categoryTextActive: {
+    color: Colors.background,
+  },
+  listContent: {
+    paddingTop: HEADER_MAX_HEIGHT + 10,
+    paddingBottom: 100,
   },
 });
